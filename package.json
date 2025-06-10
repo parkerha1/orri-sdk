@@ -1,0 +1,44 @@
+{
+    "name": "@orriai/sdk",
+    "version": "0.1.1",
+    "description": "SDK for Orri micro-apps",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "default": "./dist/index.js"
+        }
+    },
+    "files": [
+        "dist"
+    ],
+    "publishConfig": {
+        "access": "public"
+    },
+    "scripts": {
+        "build": "tsc",
+        "dev": "tsc --watch",
+        "prepare": "npm run build",
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "keywords": [
+        "orri",
+        "sdk",
+        "devtools"
+    ],
+    "author": "OrriAI",
+    "license": "MIT",
+    "dependencies": {
+        "zod": "^3.22.4"
+    },
+    "peerDependencies": {
+        "react": "^18.2.0 <18.3.0",
+        "react-dom": "^18.2.0 <18.3.0"
+    },
+    "devDependencies": {
+        "@types/react": "^18.2.0",
+        "@types/react-dom": "^18.2.0",
+        "typescript": "^5.0.0"
+    }
+}
