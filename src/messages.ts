@@ -1,4 +1,4 @@
-import type { AuthConfig } from './types';
+import type { AuthConfig, NetworkResponse } from './types';
 
 /* -------------------------------------------------------------------------- */
 /* Event & message types (side-effect-free)                                    */
@@ -56,8 +56,7 @@ export interface UserActionEvent { actionType: UserActionType; data: any }
 export interface NetworkRequestEvent { url: string; options?: RequestInit; requestId: string }
 export interface NetworkResponseEvent {
     requestId: string;
-    response?: Response;
-    error?: string;
+    response: any;
     success: boolean;
 }
 export interface AuthEvent { provider: string; scopes: string[] }

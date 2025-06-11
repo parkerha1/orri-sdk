@@ -1,5 +1,5 @@
 // utils/OrriCommunication.ts
-import { OrriApp, OrriTool, AuthConfig } from './types';
+import { OrriApp, OrriTool, AuthConfig, NetworkResponse } from './types';
 import {
     EventType,
     UserActionType,
@@ -35,7 +35,7 @@ export class OrriCommunication {
     private app: OrriApp | null = null;
     private tools = new Map<string, OrriTool<any, any>>();
     private pendingNetworkRequests = new Map<string, {
-        resolve: (value: Response) => void,
+        resolve: (value: NetworkResponse) => void,
         reject: (reason: any) => void
     }>();
 
@@ -74,7 +74,7 @@ export class OrriCommunication {
 
     /* --------------------------- inbound ------------------------------------ */
     private handleMessage(e: MessageEvent) {
-        console.log('handleMessage', e.data);
+        // console.log('handleMessage', e.data);
         try {
             const msg = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
             if (msg && typeof msg === 'object') this.route(msg as Message);
@@ -154,14 +154,14 @@ export class OrriCommunication {
     }
 
     private handleNetworkResponse(payload: NetworkResponseEvent): void {
-        const { requestId, response, error, success } = payload;
+        const { requestId, response, success } = payload;
         const pendingRequest = this.pendingNetworkRequests.get(requestId);
 
         if (pendingRequest) {
             if (success && response) {
                 pendingRequest.resolve(response);
             } else {
-                pendingRequest.reject(error || 'Network request failed');
+                pendingRequest.reject('Network request failed');
             }
             this.pendingNetworkRequests.delete(requestId);
         }
@@ -177,7 +177,7 @@ export class OrriCommunication {
         this.send({ type: EventType.USER_ACTION, payload: { actionType, data } });
     }
 
-    public fetch(url: string, options?: RequestInit): Promise<Response> {
+    public fetch(url: string, options?: RequestInit): Promise<any> {
         const requestId = crypto.randomUUID ? crypto.randomUUID() : `req_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 
         return new Promise((resolve, reject) => {
@@ -241,13 +241,14 @@ declare global {
 /* -------------------------------------------------------------------------- */
 export const orriCommunication = OrriCommunication.getInstance();
 
+
 /**
  * Sends a network request event to the host application
  * @param url The URL to fetch
  * @param options Optional request options (follows the Fetch API RequestInit interface)
  * @returns Promise that resolves with the Response from the host application
  */
-export const fetch = (url: string, options?: RequestInit): Promise<Response> => {
+export const fetch = (url: string, options?: RequestInit): Promise<any> => {
     return orriCommunication.fetch(url, options);
 };
 

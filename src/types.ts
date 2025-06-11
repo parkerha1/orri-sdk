@@ -13,8 +13,8 @@ export interface AuthConfig {
  * Interface for a tool in an Orri app
  */
 export interface OrriTool<
-    TInputSchema extends z.ZodObject<any>,
-    TOutputSchema extends z.ZodObject<any>
+    TInputSchema extends z.ZodTypeAny,
+    TOutputSchema extends z.ZodTypeAny
 > {
     id: string;
     name: string;
@@ -29,7 +29,7 @@ export interface OrriTool<
 /**
  * Props for a preflight display component
  */
-export interface PreflightDisplayProps<TSchema extends z.ZodObject<any>> {
+export interface PreflightDisplayProps<TSchema extends z.ZodTypeAny> {
     input: z.infer<TSchema>;
     onInputChange: (input: z.infer<TSchema>) => void;
     onSubmit: (params: z.infer<TSchema>) => void;
@@ -39,7 +39,7 @@ export interface PreflightDisplayProps<TSchema extends z.ZodObject<any>> {
 /**
  * Props for a postflight display component
  */
-export interface PostflightDisplayProps<TSchema extends z.ZodObject<any>> {
+export interface PostflightDisplayProps<TSchema extends z.ZodTypeAny> {
     input: z.infer<TSchema>;
 }
 
@@ -111,3 +111,18 @@ export interface ToolResultInfo {
     output: any;
     callId: string;
 } 
+
+export interface NetworkResponse {
+    /** The parsed response data (JSON object, text, etc.) */
+    data: any;
+    /** HTTP status code */
+    status: number;
+    /** HTTP status text */
+    statusText: string;
+    /** Response headers as key-value pairs */
+    headers: Record<string, string>;
+    /** Whether the response was successful (status 200-299) */
+    ok: boolean;
+    /** The final URL after redirects */
+    url: string;
+  }

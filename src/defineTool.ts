@@ -5,8 +5,8 @@ import { z } from 'zod';
  * Define an Orri tool with type safety
  */
 export function defineTool<
-    TInputSchema extends z.ZodObject<any>,
-    TOutputSchema extends z.ZodObject<any>
+    TInputSchema extends z.ZodTypeAny,
+    TOutputSchema extends z.ZodTypeAny
 >(config: OrriTool<TInputSchema, TOutputSchema>): OrriTool<TInputSchema, TOutputSchema> {
     return config;
 } 
