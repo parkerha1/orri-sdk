@@ -2,6 +2,14 @@ import { z } from 'zod';
 import React from 'react';
 
 /**
+ * Authentication configuration for an Orri app
+ */
+export interface AuthConfig {
+    provider: string;
+    scopes: string[];
+}
+
+/**
  * Interface for a tool in an Orri app
  */
 export interface OrriTool<
@@ -44,6 +52,7 @@ export interface OrriApp {
     description: string;
     version: string;
     tools: OrriTool<any, any>[];
+    auth?: AuthConfig;
 }
 
 /**
@@ -55,6 +64,7 @@ export interface OrriAppManifest {
     description: string;
     version: string;
     tools: OrriToolManifest[];
+    auth?: AuthConfig;
 }
 
 /**

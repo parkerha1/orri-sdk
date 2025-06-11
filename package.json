@@ -1,11 +1,12 @@
 {
     "name": "@orriai/sdk",
-    "version": "0.1.1",
+    "version": "0.1.7",
     "description": "SDK for Orri micro-apps",
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
     "exports": {
         ".": {
+            "react-native": "./dist/index.native.js",
             "types": "./dist/index.d.ts",
             "default": "./dist/index.js"
         }
@@ -40,5 +41,6 @@
         "@types/react": "^18.2.0",
         "@types/react-dom": "^18.2.0",
         "typescript": "^5.0.0"
-    }
+    },
+    "react-native": "dist/index.native.js"
 }

@@ -1,40 +1,23 @@
 // utils/OrriCommunication.ts
-import { OrriApp, OrriTool } from './types';
+import { OrriApp, OrriTool, AuthConfig } from './types';
+import {
+    EventType,
+    UserActionType,
+    Message,
+    DisplayEvent,
+    ToolCallEvent,
+    ToolResultEvent,
+    UserActionEvent,
+    NetworkRequestEvent,
+    NetworkResponseEvent,
+    AuthEvent,
+    InitializeEvent,
+} from './messages';
 
 /* -------------------------------------------------------------------------- */
 /* Event & message types                                                      */
 /* -------------------------------------------------------------------------- */
-export enum EventType {
-    DISPLAY = 'DISPLAY',
-    USER_ACTION = 'USER_ACTION',
-    TOOL_CALL = 'TOOL_CALL',
-    TOOL_RESULT = 'TOOL_RESULT',
-    INITIALIZE = 'INITIALIZE',
-    ERROR = 'ERROR',
-    NETWORK_REQUEST = 'NETWORK_REQUEST',
-    NETWORK_RESPONSE = 'NETWORK_RESPONSE',
-}
-
-export interface Message {
-    type: EventType;
-    payload: any;
-}
-
-export interface DisplayEvent {
-    toolId: string;
-    stage: string;
-    input?: any;
-}
-export interface ToolCallEvent { toolId: string; input: any; callId: string }
-export interface ToolResultEvent { toolId: string; output: any; callId: string; success: boolean; message?: string }
-export interface UserActionEvent { actionType: string; data: any }
-export interface NetworkRequestEvent { url: string; options?: RequestInit; requestId: string }
-export interface NetworkResponseEvent {
-    requestId: string;
-    response?: Response;
-    error?: string;
-    success: boolean;
-}
+// Duplicate definitions removed; they now live in messages.ts
 
 /* -------------------------------------------------------------------------- */
 /* Helpers                                                                    */
@@ -57,7 +40,11 @@ export class OrriCommunication {
     }>();
 
     private constructor() {
-        window.addEventListener('message', this.handleMessage.bind(this));
+        // In React Native's JS runtime, window.addEventListener does not exist.
+        // Guard against that to avoid "window.addEventListener is not a function" errors
+        if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+            window.addEventListener('message', this.handleMessage.bind(this));
+        }
     }
 
     /* --------------------------- lifecycle ---------------------------------- */
@@ -66,9 +53,10 @@ export class OrriCommunication {
     }
 
     public initialize(app: OrriApp) {
+        console.log('bridge?', !!window.ReactNativeWebView)
         this.app = app;
         app.tools.forEach(t => this.tools.set(t.id, t));
-
+        console.log('SENDING INITIALIZE: ', app);
         this.send({
             type: EventType.INITIALIZE,
             payload: {
@@ -79,7 +67,8 @@ export class OrriCommunication {
                     name,
                     description,
                 })),
-            },
+                auth: app.auth || null,
+            } as InitializeEvent,
         });
     }
 
@@ -95,6 +84,7 @@ export class OrriCommunication {
     }
 
     private route(message: Message) {
+        console.log('route', message);
         switch (message.type) {
             case EventType.DISPLAY:
                 this.dispatch(EventType.DISPLAY, message.payload as DisplayEvent);
@@ -104,6 +94,25 @@ export class OrriCommunication {
                 break;
             case EventType.NETWORK_RESPONSE:
                 this.handleNetworkResponse(message.payload as NetworkResponseEvent);
+                break;
+            case EventType.INITIALIZE:
+                console.log('INITIALIZE: ', this.app);
+                this.send({
+                    type: EventType.INITIALIZE,
+                    payload: {
+                        appId: this.app?.id,
+                        version: this.app?.version,
+                        tools: this.app?.tools.map(({ id, name, description }) => ({
+                            id,
+                            name,
+                            description,
+                        })),
+                        auth: this.app?.auth || null,
+                    } as InitializeEvent,
+                });
+                break;
+            case EventType.AUTH:
+                this.dispatch(EventType.AUTH, message.payload as AuthEvent);
                 break;
             default:
                 this.dispatch(message.type, message.payload);
@@ -159,7 +168,12 @@ export class OrriCommunication {
     }
 
     /* --------------------------- outbound ----------------------------------- */
-    public sendUserAction(actionType: string, data: any) {
+    /**
+     * Send a user action to the host
+     * @param actionType The type of action (must use UserActionType enum)
+     * @param data The data associated with the action
+     */
+    public sendUserAction(actionType: UserActionType, data: any) {
         this.send({ type: EventType.USER_ACTION, payload: { actionType, data } });
     }
 
@@ -179,6 +193,7 @@ export class OrriCommunication {
     }
 
     private send(message: Message) {
+        console.log('SENDING: ', message);
         if (hasRNBridge()) {
             window.ReactNativeWebView!.postMessage(JSON.stringify(message));
         } else {
@@ -209,6 +224,7 @@ export class OrriCommunication {
     /* --------------------------- utils -------------------------------------- */
     public getTool(id: string) { return this.tools.get(id) }
     public getRegisteredTools() { return new Map(this.tools) }
+    public getAuthConfig(): AuthConfig | null { return this.app?.auth || null; }
 }
 
 /* -------------------------------------------------------------------------- */
@@ -233,4 +249,18 @@ export const orriCommunication = OrriCommunication.getInstance();
  */
 export const fetch = (url: string, options?: RequestInit): Promise<Response> => {
     return orriCommunication.fetch(url, options);
+};
+
+export {
+    EventType,
+    UserActionType,
+    Message,
+    DisplayEvent,
+    ToolCallEvent,
+    ToolResultEvent,
+    UserActionEvent,
+    NetworkRequestEvent,
+    NetworkResponseEvent,
+    AuthEvent,
+    InitializeEvent,
 };

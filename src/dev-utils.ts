@@ -1,4 +1,5 @@
-import { EventType, Message, orriCommunication } from './communication';
+import { orriCommunication } from './communication';
+import { EventType, Message } from './messages';
 import { DisplayInfo, ToolCallInfo } from './types';
 
 /**

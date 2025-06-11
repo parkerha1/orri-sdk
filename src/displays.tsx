@@ -1,38 +1,62 @@
 import React from 'react';
-import { orriCommunication, EventType } from './communication';
-import { OrriTool } from './types';
-
+import { orriCommunication, EventType, UserActionType } from './communication';
+import { OrriTool, AuthConfig } from './types';
+import { DisplayEvent, DisplayStage } from './messages';
 // Display router component props
 export interface DisplayRouterProps {
     loadingComponent?: React.ReactNode;
     errorComponent?: React.FC<{ displayId: string; toolId?: string; stage?: string }>;
+    appName?: string;
 }
 
 // Display types
-export enum DisplayStage {
-    PREFLIGHT = 'preflight',
-    POSTFLIGHT = 'postflight'
+
+
+// Auth display component props
+export interface AuthDisplayProps {
+    appName: string;
+    provider: string;
+    scopes: string[];
+    onAuth: (provider: string, scopes: string[]) => void;
 }
 
-// Payload for display events
-export interface DisplayEventPayload {
-    toolId: string;
-    stage: DisplayStage;
-    input?: any;
-}
+// Auth display component
+export const AuthDisplay: React.FC<AuthDisplayProps> = ({
+    appName,
+    provider,
+    scopes,
+    onAuth
+}) => {
+    return (
+        <div className="orri-auth-container">
+            <h2>{appName}</h2>
+            <p>This app requires authentication to access your data.</p>
+            <button
+                className="orri-auth-button"
+                onClick={() => onAuth(provider, scopes)}
+            >
+                Authenticate with {provider}
+            </button>
+        </div>
+    );
+};
 
 // Use a wrapper to ensure this is a valid React component
 const InternalDisplayRouter = (props: DisplayRouterProps): React.ReactElement => {
     const {
         loadingComponent = React.createElement('div', null, 'Loading...'),
-        errorComponent: ErrorComponent
+        errorComponent: ErrorComponent,
+        appName
     } = props;
 
     // Use React hooks to manage the current display state
-    const [currentDisplay, setCurrentDisplay] = React.useState<DisplayEventPayload | null>(null);
+    const [currentDisplay, setCurrentDisplay] = React.useState<DisplayEvent | null>(null);
 
     // Keep a reference to all registered tools
     const [tools, setTools] = React.useState<Map<string, OrriTool<any, any>>>(new Map());
+
+    // Store app auth config
+    const [authConfig, setAuthConfig] = React.useState<AuthConfig | null>(null);
 
     React.useEffect(() => {
         // Set up tools from the initialized app
@@ -42,8 +66,14 @@ const InternalDisplayRouter = (props: DisplayRouterProps): React.ReactElement =>
             setTools(appTools);
         }
 
+        // Get auth config
+        const config = orriCommunication.getAuthConfig();
+        if (config) {
+            setAuthConfig(config);
+        }
+
         // Register listener for DISPLAY events from the host
-        const handleDisplayEvent = (payload: DisplayEventPayload) => {
+        const handleDisplayEvent = (payload: DisplayEvent) => {
             console.log('Display event received:', payload);
             console.log('Available stages:', Object.values(DisplayStage));
             setCurrentDisplay(payload);
@@ -67,16 +97,51 @@ const InternalDisplayRouter = (props: DisplayRouterProps): React.ReactElement =>
     console.log(`Looking for tool: ${toolId}, stage: ${stage}, input:`, input);
     console.log(`Stage: ${stage}, Expected preflight: ${DisplayStage.PREFLIGHT}`);
 
+    // Helper function to check stage with more flexibility
+    const isStage = (actual?: string, expected?: string) => {
+        if (!actual || !expected) return false;
+        return actual.toLowerCase() === expected.toLowerCase();
+    };
+
+    // Handle auth stage
+    if (isStage(stage, DisplayStage.AUTH) || isStage(stage, 'auth')) {
+        if (!authConfig) {
+            if (ErrorComponent) {
+                return React.createElement(ErrorComponent, {
+                    displayId: 'auth',
+                    stage
+                });
+            }
+            return React.createElement(
+                'div',
+                { style: { padding: '1rem', color: 'red' } },
+                `Error: Authentication configuration is not defined for this app`
+            );
+        }
+
+        return React.createElement(AuthDisplay, {
+            appName: appName || 'Orri App',
+            provider: authConfig.provider,
+            scopes: authConfig.scopes,
+            onAuth: (provider, scopes) => {
+                orriCommunication.sendUserAction(UserActionType.AUTH, {
+                    provider,
+                    scopes
+                });
+            }
+        });
+    }
+
     // Find the tool based on toolId
     const tool = tools.get(toolId);
     console.log('Found tool:', tool);
 
-    if (tool) {
-        console.log('Tool has preflight:', !!tool.preflightDisplay);
-        console.log('Tool has postflight:', !!tool.postflightDisplay);
-        console.log('Preflight display type:', typeof tool.preflightDisplay);
-        console.log('Preflight display value:', tool.preflightDisplay);
-    }
+    // if (tool) {
+    //     console.log('Tool has preflight:', !!tool.preflightDisplay);
+    //     console.log('Tool has postflight:', !!tool.postflightDisplay);
+    //     console.log('Preflight display type:', typeof tool.preflightDisplay);
+    //     console.log('Preflight display value:', tool.preflightDisplay);
+    // }
 
     if (!tool) {
         if (ErrorComponent) {
@@ -102,12 +167,6 @@ const InternalDisplayRouter = (props: DisplayRouterProps): React.ReactElement =>
     console.log('DisplayStage.PREFLIGHT:', DisplayStage.PREFLIGHT);
     console.log('Stage comparison:', stage === DisplayStage.PREFLIGHT);
 
-    // Helper function to check stage with more flexibility
-    const isStage = (actual?: string, expected?: string) => {
-        if (!actual || !expected) return false;
-        return actual.toLowerCase() === expected.toLowerCase();
-    };
-
     if (isStage(stage, DisplayStage.PREFLIGHT) || isStage(stage, 'preflight')) {
         DisplayComponent = tool.preflightDisplay;
         console.log('Preflight component assigned:', DisplayComponent);
@@ -132,14 +191,14 @@ const InternalDisplayRouter = (props: DisplayRouterProps): React.ReactElement =>
             input: input || {},
             onInputChange: (newInput: any) => {
                 // Send input change event to host
-                orriCommunication.sendUserAction('input_changed', {
+                orriCommunication.sendUserAction(UserActionType.INPUT_CHANGED, {
                     toolId: toolId,
                     input: newInput
                 });
             },
             onSubmit: (finalInput: any) => {
                 // Send confirm event to host with the final parameters
-                orriCommunication.sendUserAction('confirm', {
+                orriCommunication.sendUserAction(UserActionType.CONFIRM, {
                     toolId: toolId,
                     input: finalInput
                 });
