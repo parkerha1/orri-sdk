@@ -2,6 +2,8 @@ import React from 'react';
 import { orriCommunication, EventType, UserActionType } from './communication';
 import { OrriTool, AuthConfig } from './types';
 import { DisplayEvent, DisplayStage } from './messages';
+import { AuthDisplay, AuthDisplayProps } from './authDisplay';
+
 // Display router component props
 export interface DisplayRouterProps {
     loadingComponent?: React.ReactNode;
@@ -10,36 +12,6 @@ export interface DisplayRouterProps {
 }
 
 // Display types
-
-
-// Auth display component props
-export interface AuthDisplayProps {
-    appName: string;
-    provider: string;
-    scopes: string[];
-    onAuth: (provider: string, scopes: string[]) => void;
-}
-
-// Auth display component
-export const AuthDisplay: React.FC<AuthDisplayProps> = ({
-    appName,
-    provider,
-    scopes,
-    onAuth
-}) => {
-    return (
-        <div className="orri-auth-container">
-            <h2>{appName}</h2>
-            <p>This app requires authentication to access your data.</p>
-            <button
-                className="orri-auth-button"
-                onClick={() => onAuth(provider, scopes)}
-            >
-                Authenticate with {provider}
-            </button>
-        </div>
-    );
-};
 
 // Use a wrapper to ensure this is a valid React component
 const InternalDisplayRouter = (props: DisplayRouterProps): React.ReactElement => {

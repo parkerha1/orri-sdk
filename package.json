@@ -1,6 +1,6 @@
 {
     "name": "@orriai/sdk",
-    "version": "0.1.7",
+    "version": "0.1.9",
     "description": "SDK for Orri micro-apps",
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
